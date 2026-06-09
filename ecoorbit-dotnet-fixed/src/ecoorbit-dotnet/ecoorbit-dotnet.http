@@ -1,0 +1,6 @@
+@ecoorbit_dotnet_HostAddress = http://localhost:5238
+
+GET {{ecoorbit_dotnet_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
