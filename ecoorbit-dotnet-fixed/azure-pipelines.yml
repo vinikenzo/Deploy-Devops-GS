@@ -1,67 +1,65 @@
 trigger:
-  - main
+  - Deploy-teste
 
 pool:
   vmImage: ubuntu-latest
 
-variables:
-  acrName: "SEU_ACR_NAME"
-  acrLoginServer: "SEU_ACR_NAME.azurecr.io"
-  imageName: "ecoorbit-dotnet"
-  containerName: "ecoorbit-dotnet-api"
-  resourceGroup: "SEU_RESOURCE_GROUP"
-  location: "eastus"
-
 stages:
+
   - stage: Build
     displayName: "Build e Push para ACR"
     jobs:
       - job: BuildAndPush
         steps:
           - task: Docker@2
-            displayName: "Build e Push - ecoorbit-dotnet"
+            displayName: "Build da imagem"
             inputs:
-              containerRegistry: "SEU_SERVICE_CONNECTION"
-              repository: "$(imageName)"
-              command: "buildAndPush"
-              Dockerfile: "src/ecoorbit-dotnet/Dockerfile"
-              buildContext: "."
+              containerRegistry: "dotnetmssqlrm559982"
+              repository:        "dotnetsql"
+              command:           "build"
+              Dockerfile:        "**/Dockerfile"
+              tags: |
+                $(Build.BuildId)
+                latest
+          - task: Docker@2
+            displayName: "Push para ACR"
+            inputs:
+              containerRegistry: "dotnetmssqlrm559982"
+              repository:        "dotnetsql"
+              command:           "push"
               tags: |
                 $(Build.BuildId)
                 latest
 
   - stage: Deploy
-    displayName: "Deploy para Azure Container Instances"
+    displayName: "Deploy no ACI"
     dependsOn: Build
     jobs:
-      - job: Deploy
+      - job: DeployACI
         steps:
           - task: AzureCLI@2
-            displayName: "Deploy ACI"
+            displayName: "Criar container no ACI"
             inputs:
-              azureSubscription: "SEU_SERVICE_CONNECTION_AZURE"
-              scriptType: "bash"
-              scriptLocation: "inlineScript"
+              azureSubscription: "Azure for Students (18bb83d1-9d22-4924-99be-d308097ab484)"
+              scriptType:        "bash"
+              scriptLocation:    "inlineScript"
               inlineScript: |
                 az container delete \
-                  --resource-group $(resourceGroup) \
-                  --name $(containerName) \
-                  --yes 2>/dev/null || true
+                  --resource-group rg-azuredevops-ecoorbit \
+                  --name dotnetmssqlrm559982 \
+                  --yes
 
                 az container create \
-                  --resource-group $(resourceGroup) \
-                  --name $(containerName) \
-                  --image $(acrLoginServer)/$(imageName):$(Build.BuildId) \
-                  --registry-login-server $(acrLoginServer) \
-                  --registry-username $(acrUsername) \
-                  --registry-password $(acrPassword) \
-                  --dns-name-label $(containerName) \
-                  --ports 8080 \
+                  --resource-group rg-azuredevops-ecoorbit \
+                  --name dotnetmssqlrm559982 \
+                  --image dotnetmssqlrm559982.azurecr.io/dotnetsql:latest \
+                  --cpu 2 \
+                  --memory 2 \
                   --os-type Linux \
-                  --cpu 1 \
-                  --memory 1.5 \
-                  --environment-variables \
-                    ASPNETCORE_ENVIRONMENT=Production \
-                  --secure-environment-variables \
-                    "ConnectionStrings__SqlServer=$(sqlServerConnectionString)" \
-                    "Jwt__Key=$(jwtKey)"
+                  --registry-login-server dotnetmssqlrm559982.azurecr.io \
+                  --registry-username dotnetmssqlrm559982 \
+                  --registry-password "VejwYMuBTL7HUVWVRDsykTSxoJk3v5GqyfbBgEWRaJ66ppaRLei0JQQJ99CFACPV0roEqg7NAAACAZCRTzsA" \
+                  --dns-name-label dotnetmssqlrm559982 \
+                  --restart-policy Always \
+                  --ports 80 
+                  
