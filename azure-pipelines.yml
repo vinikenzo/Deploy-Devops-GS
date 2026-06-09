@@ -1,0 +1,23 @@
+trigger:
+  - Teste-EcoOrbit
+
+pool:
+  vmImage: ubuntu-latest
+
+stages:
+  - stage: Build
+    displayName: "Build e Push para ACR"
+    jobs:
+      - job: BuildAndPush
+        steps:
+          - task: Docker@2
+            displayName: "Build and Push da imagem"
+            inputs:
+              containerRegistry: "dotnetmssqlrm559982"
+              repository: "dotnetsql"
+              command: "buildAndPush"
+              Dockerfile: "ecoorbit-dotnet-fixed/src/ecoorbit-dotnet/Dockerfile"
+              buildContext: "ecoorbit-dotnet-fixed"
+              tags: |
+                $(Build.BuildId)
+                latest
