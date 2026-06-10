@@ -1,5 +1,5 @@
 trigger:
-  - Teste-EcoOrbit
+  - main
 
 pool:
   vmImage: ubuntu-latest
